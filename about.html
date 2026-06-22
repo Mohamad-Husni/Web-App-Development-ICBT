@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | GlobeTrek Adventures</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Learn more about GlobeTrek Adventures story. Discover our values, luxury travel coordinated guides, and mission to redefine modern tourism.">
+    <meta name="keywords" content="about us, travel agency story, travel values, luxury vacation experts">
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="About Us | GlobeTrek Adventures">
+    <meta property="og:description" content="Learn more about GlobeTrek Adventures story. Discover our values, luxury travel coordinated guides, and mission to redefine modern tourism.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js and page guards) -->
+    <script src="env.js"></script>
+</head>
+<body>
+
+    <!-- ==========================================
+       NAVIGATION HEADER (GLASSMORPHISM)
+       ========================================== -->
+    <nav class="navbar" id="main-navbar">
+        <div class="container">
+            <a href="index.html" class="logo-wrapper" id="nav-logo">
+                <img src="logo.png" alt="GlobeTrek Logo" style="height: 36px; width: auto; object-fit: contain;">
+                <span>GlobeTrek</span>
+            </a>
+            
+            <ul class="nav-links" id="desktop-nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="packages.html">Packages</a></li>
+                <li><a href="about.html" class="active">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            
+            <div class="nav-auth" id="nav-auth-container">
+                <!-- Injected dynamically by app.js (initAuth) -->
+                <a href="login.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Login</a>
+                <a href="login.html?signup=true" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+            
+            <button class="hamburger" id="hamburger-toggle" aria-label="Toggle Navigation Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+       MOBILE DRAWER NAVIGATION
+       ========================================== -->
+    <div class="mobile-drawer-overlay" id="mobile-overlay"></div>
+    <aside class="mobile-drawer" id="mobile-drawer">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html"><i data-lucide="home" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Home</a></li>
+            <li><a href="packages.html"><i data-lucide="map" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Packages</a></li>
+            <li><a href="about.html" class="active"><i data-lucide="info" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> About Us</a></li>
+            <li><a href="contact.html"><i data-lucide="phone" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Contact</a></li>
+        </ul>
+        <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0;">
+        <ul class="mobile-nav-links" id="mobile-nav-auth-container">
+            <!-- Injected dynamically by app.js (initAuth) -->
+            <li><a href="login.html"><i data-lucide="log-in"></i> Login</a></li>
+            <li><a href="login.html?signup=true"><i data-lucide="user-plus"></i> Sign Up</a></li>
+        </ul>
+    </aside>
+
+    <!-- ==========================================
+       SUB-HERO BANNER
+       ========================================== -->
+    <header class="hero" id="home-hero" style="min-height: 45vh; height: 45vh; background: linear-gradient(rgba(10, 10, 26, 0.5), rgba(10, 10, 26, 0.75)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') no-repeat center center/cover;">
+        <div class="container">
+            <div class="hero-content" style="max-width: 700px; padding-top: 2rem;">
+                <h1 class="sub-hero-title">Our Story</h1>
+                <p class="hero-desc" style="font-size: 1.1rem; margin-bottom: 0;">Redefining modern luxury travel through expert curation, premium local accommodations, and secure reservations.</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+       BRAND STORY NARRATIVE & VALUES
+       ========================================== -->
+    <main class="section-padding" style="background-color: var(--white);">
+        <div class="container">
+            <div class="about-grid">
+                
+                <!-- Left Panel Text Block -->
+                <div>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; line-height: 1.2;">We Create Immersive Journeys</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1.25rem;">Founded in 2026, GlobeTrek Adventures has evolved from a small community of global explorers into a premier luxury travel booking platform. Our mission is simple: to connect discerning travelers with custom, hand-crafted itineraries that go beyond simple sightseeing.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">We believe in responsible curation. By partnering directly with local guides, boutique eco-resorts, and heritage hotels, we provide authentic local experiences while maintaining high standards of luxury, convenience, and safety.</p>
+                    
+                    <a href="packages.html" class="btn btn-primary">
+                        <i data-lucide="compass"></i> Explore Packages
+                    </a>
+                </div>
+
+                <!-- Right Panel Interactive Stats -->
+                <div class="about-stats-grid">
+                    <div style="background-color: var(--bg-light); padding: 2.5rem 1.8rem; border-radius: var(--border-radius-md); text-align: center; border: 1px solid rgba(10, 10, 26, 0.03);">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--primary); font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">15+</div>
+                        <h4 style="font-size: 1rem; color: var(--text-muted);">Destinations</h4>
+                    </div>
+                    <div style="background-color: var(--bg-light); padding: 2.5rem 1.8rem; border-radius: var(--border-radius-md); text-align: center; border: 1px solid rgba(10, 10, 26, 0.03);">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--primary); font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">100k</div>
+                        <h4 style="font-size: 1rem; color: var(--text-muted);">Happy Travelers</h4>
+                    </div>
+                    <div style="background-color: var(--bg-light); padding: 2.5rem 1.8rem; border-radius: var(--border-radius-md); text-align: center; border: 1px solid rgba(10, 10, 26, 0.03);">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--primary); font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">4.9</div>
+                        <h4 style="font-size: 1rem; color: var(--text-muted);">Average Rating</h4>
+                    </div>
+                    <div style="background-color: var(--bg-light); padding: 2.5rem 1.8rem; border-radius: var(--border-radius-md); text-align: center; border: 1px solid rgba(10, 10, 26, 0.03);">
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--primary); font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">24/7</div>
+                        <h4 style="font-size: 1rem; color: var(--text-muted);">Support Hours</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Value Propositions Section -->
+            <div class="tours-header" style="margin-bottom: 4rem;">
+                <h2>Our Guiding Core Values</h2>
+                <p>The foundation of every custom itinerary and global travel package we coordinate.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 3rem; text-align: center;">
+                <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                        <i data-lucide="shield-check" style="width: 32px; height: 32px;"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem;">Secure & Reliable</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">All packages are fully bonded and secured with 24/7 support while you explore the globe.</p>
+                </div>
+                <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                        <i data-lucide="award" style="width: 32px; height: 32px;"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem;">Expert Curation</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Immersive local adventures planned by award-winning global travel coordinators.</p>
+                </div>
+                <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                        <i data-lucide="sparkles" style="width: 32px; height: 32px;"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem;">Luxury Accommodation</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">Premium resort stays, private dining options, and fast-track entries to global highlights.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==========================================
+       FOOTER
+       ========================================== -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo-wrapper" style="color: var(--white); gap: 0.8rem;">
+                        <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);">
+                        <span>GlobeTrek</span>
+                    </a>
+                    <p>Building memories, one journey at a time. Book premium flights, stays, and guided explorations with the world's leading travel network.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul class="footer-links">
+                        <li><a href="packages.html">Trending Tours</a></li>
+                        <li><a href="packages.html">Seasonal Deals</a></li>
+                        <li><a href="about.html">Our Story</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Cancellation Policy</a></li>
+                        <li><a href="#">Contact Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Contact Us</h3>
+                    <ul class="footer-links" style="color: rgba(255,255,255,0.65); font-size: 0.95rem;">
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="phone" style="width: 16px; height: 16px; color: var(--primary);"></i> +94 31 223 4567</li>
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="mail" style="width: 16px; height: 16px; color: var(--primary);"></i> support@globetrek.lk</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 GlobeTrek Adventures. All Rights Reserved.</p>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global scripts link -->
+    <script src="app.js"></script>
+</body>
+</html>

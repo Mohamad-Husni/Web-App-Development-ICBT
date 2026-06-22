@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore Tour Packages | GlobeTrek Adventures</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Browse and search premium tour packages globally. Use our budget and destination filter to find your next luxury holiday destination instantly.">
+    <meta name="keywords" content="tour packages, travel deals, search tours, budget vacations, luxury getaways">
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="Explore Tour Packages | GlobeTrek Adventures">
+    <meta property="og:description" content="Browse and search premium tour packages globally. Use our budget and destination filter to find your next luxury holiday destination instantly.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js and page guards) -->
+    <script src="env.js"></script>
+</head>
+<body>
+
+    <!-- ==========================================
+       NAVIGATION HEADER (GLASSMORPHISM)
+       ========================================== -->
+    <nav class="navbar" id="main-navbar">
+        <div class="container">
+            <a href="index.html" class="logo-wrapper" id="nav-logo">
+                <img src="logo.png" alt="GlobeTrek Logo" style="height: 36px; width: auto; object-fit: contain;">
+                <span>GlobeTrek</span>
+            </a>
+            
+            <ul class="nav-links" id="desktop-nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="packages.html" class="active">Packages</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            
+            <div class="nav-auth" id="nav-auth-container">
+                <!-- Injected dynamically by app.js (initAuth) -->
+                <a href="login.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Login</a>
+                <a href="login.html?signup=true" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+            
+            <button class="hamburger" id="hamburger-toggle" aria-label="Toggle Navigation Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+       MOBILE DRAWER NAVIGATION
+       ========================================== -->
+    <div class="mobile-drawer-overlay" id="mobile-overlay"></div>
+    <aside class="mobile-drawer" id="mobile-drawer">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html"><i data-lucide="home" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Home</a></li>
+            <li><a href="packages.html" class="active"><i data-lucide="map" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Packages</a></li>
+            <li><a href="about.html"><i data-lucide="info" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> About Us</a></li>
+            <li><a href="contact.html"><i data-lucide="phone" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Contact</a></li>
+        </ul>
+        <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0;">
+        <ul class="mobile-nav-links" id="mobile-nav-auth-container">
+            <!-- Injected dynamically by app.js (initAuth) -->
+            <li><a href="login.html"><i data-lucide="log-in"></i> Login</a></li>
+            <li><a href="login.html?signup=true"><i data-lucide="user-plus"></i> Sign Up</a></li>
+        </ul>
+    </aside>
+
+    <!-- ==========================================
+       SUB-HERO BANNER
+       ========================================== -->
+    <header class="hero" id="home-hero" style="min-height: 45vh; height: 45vh; background: linear-gradient(rgba(10, 10, 26, 0.5), rgba(10, 10, 26, 0.75)), url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1920&q=80') no-repeat center center/cover;">
+        <div class="container">
+            <div class="hero-content" style="max-width: 700px; padding-top: 2rem;">
+                <h1 class="sub-hero-title">Packages Explorer</h1>
+                <p class="hero-desc" style="font-size: 1.1rem; margin-bottom: 0;">Browse our active travel packages, filter by destination or budget, and book your next luxury journey instantly.</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+       EXPLORER / SEARCH INTERACTIVE GRID
+       ========================================== -->
+    <section class="section-padding" style="padding-top: 4rem;">
+        <div class="container">
+            
+            <!-- Floating Search Widget Bar -->
+            <form class="search-widget search-widget--simple search-widget--light" id="hero-search-form" onsubmit="event.preventDefault(); filterTours();" style="margin-bottom: 4rem; position: relative; top: -5.5rem;">
+
+                <!-- Big destination search bar (always visible) -->
+                <div class="search-basic">
+                    <div class="search-field search-field--main">
+                        <label for="search-dest">Where do you want to go?</label>
+                        <div class="search-input-wrapper">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="search-dest" name="destination" placeholder="Search destinations, e.g. Bali, Swiss Alps...">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-search-submit">
+                        <i data-lucide="navigation"></i> Search
+                    </button>
+                </div>
+
+                <!-- Basic filters shown first: dates + number of travelers -->
+                <div class="search-basic-filters">
+                    <div class="search-field">
+                        <label for="search-checkin">Check-in</label>
+                        <div class="search-input-wrapper">
+                            <i data-lucide="calendar"></i>
+                            <input type="date" id="search-checkin" name="checkin">
+                        </div>
+                    </div>
+                    <div class="search-field">
+                        <label for="search-checkout">Check-out</label>
+                        <div class="search-input-wrapper">
+                            <i data-lucide="calendar-check"></i>
+                            <input type="date" id="search-checkout" name="checkout" aria-describedby="search-checkout-error">
+                        </div>
+                        <p class="field-error" id="search-checkout-error" role="alert" aria-live="polite"></p>
+                    </div>
+                    <div class="search-field">
+                        <label for="search-travelers">Travelers</label>
+                        <div class="search-input-wrapper">
+                            <i data-lucide="users"></i>
+                            <select id="search-travelers" name="travelers">
+                                <option value="">Any group size</option>
+                                <option value="1">1 Traveler</option>
+                                <option value="2">2 Travelers</option>
+                                <option value="3">3+ Travelers</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toggle: reveal extra filters only when needed -->
+                <button type="button" class="search-more-toggle" id="search-more-toggle" aria-expanded="false" aria-controls="advanced-filters" onclick="toggleAdvancedFilters()">
+                    <i data-lucide="sliders-horizontal"></i>
+                    <span id="search-more-label">More filters</span>
+                    <i data-lucide="chevron-down"></i>
+                </button>
+
+                <!-- Extra filters: hidden until needed -->
+                <div class="advanced-filters" id="advanced-filters" hidden>
+                    <div class="search-field">
+                        <label for="search-budget">Max Budget</label>
+                        <div class="search-input-wrapper">
+                            <i data-lucide="wallet"></i>
+                            <select id="search-budget" name="budget">
+                                <option value="">Any Budget</option>
+                                <option value="1500">Under LKR 1,500</option>
+                                <option value="2000">Under LKR 2,000</option>
+                                <option value="2500">Under LKR 2,500</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="tours-header" style="margin-top: -3rem; text-align: left; margin-bottom: 3rem;">
+                <h2>Available Packages</h2>
+                <p>Showing curated luxury experiences available for immediate booking.</p>
+            </div>
+            
+            <!-- Dynamic Tour Cards injected by app.js -->
+            <div class="tours-grid" id="tours-container"></div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+       FOOTER
+       ========================================== -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo-wrapper" style="color: var(--white); gap: 0.8rem;">
+                        <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);">
+                        <span>GlobeTrek</span>
+                    </a>
+                    <p>Building memories, one journey at a time. Book premium flights, stays, and guided explorations with the world's leading travel network.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul class="footer-links">
+                        <li><a href="packages.html">Trending Tours</a></li>
+                        <li><a href="packages.html">Seasonal Deals</a></li>
+                        <li><a href="about.html">Our Story</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Cancellation Policy</a></li>
+                        <li><a href="#">Contact Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Contact Us</h3>
+                    <ul class="footer-links" style="color: rgba(255,255,255,0.65); font-size: 0.95rem;">
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="phone" style="width: 16px; height: 16px; color: var(--primary);"></i> +94 31 223 4567</li>
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="mail" style="width: 16px; height: 16px; color: var(--primary);"></i> support@globetrek.lk</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 GlobeTrek Adventures. All Rights Reserved.</p>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global scripts link -->
+    <script src="app.js"></script>
+
+    <!-- Custom Search Form filtering integration -->
+    <script>
+        function toggleAdvancedFilters() {
+            const panel = document.getElementById('advanced-filters');
+            const toggle = document.getElementById('search-more-toggle');
+            const label = document.getElementById('search-more-label');
+            if (!panel || !toggle) return;
+
+            const isHidden = panel.hasAttribute('hidden');
+            if (isHidden) {
+                panel.removeAttribute('hidden');
+                toggle.classList.add('open');
+                toggle.setAttribute('aria-expanded', 'true');
+                if (label) label.textContent = 'Fewer filters';
+            } else {
+                panel.setAttribute('hidden', '');
+                toggle.classList.remove('open');
+                toggle.setAttribute('aria-expanded', 'false');
+                if (label) label.textContent = 'More filters';
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        async function filterTours() {
+            const searchDest = document.getElementById('search-dest').value.toLowerCase().trim();
+            const searchBudget = document.getElementById('search-budget').value;
+            const toursContainer = document.getElementById('tours-container');
+            
+            if (!toursContainer) return;
+            
+            let toursList = [];
+            try {
+                toursList = await window.fetchPackages();
+            } catch (e) {
+                toursContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 4rem 0;">
+                        <i data-lucide="cloud-off" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-muted); font-size: 1.1rem; font-weight: 600;">Could not load packages right now. Please try again later.</p>
+                    </div>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            let filtered = toursList.filter(tour => {
+                const matchDest = !searchDest || 
+                    tour.destination.toLowerCase().includes(searchDest) || 
+                    (tour.description && tour.description.toLowerCase().includes(searchDest));
+                
+                const matchBudget = !searchBudget || tour.price <= parseFloat(searchBudget);
+                
+                return matchDest && matchBudget;
+            });
+            
+            toursContainer.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                toursContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 4rem 0;">
+                        <i data-lucide="frown" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                        <p style="color: var(--text-muted); font-size: 1.1rem; font-weight: 600;">No adventures match your search criteria.</p>
+                        <button onclick="document.getElementById('hero-search-form').reset(); filterTours();" class="btn btn-secondary" style="margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 0.85rem;">Clear Filters</button>
+                    </div>
+                `;
+            } else {
+                filtered.forEach(tour => {
+                    const image = tour.image_url || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80';
+                    
+                    const cardHTML = `
+                        <article class="tour-card">
+                            <div class="tour-img-wrapper">
+                                <img src="${image}" alt="${tour.destination}" loading="lazy">
+                                <span class="tour-badge">Getaway</span>
+                                <span class="tour-price-tag">LKR ${parseFloat(tour.price).toFixed(0)}</span>
+                            </div>
+                            <div class="tour-details">
+                                <div class="tour-meta">
+                                    <span><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${tour.duration || 'Flexible'}</span>
+                                    <span><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${tour.destination}</span>
+                                </div>
+                                <h3>${tour.destination}</h3>
+                                <p class="tour-desc">${tour.description || 'No description available.'}</p>
+                                <div class="tour-footer">
+                                    <div class="tour-rating">
+                                        <i data-lucide="star" style="width: 16px; height: 16px; fill: #FFB800; stroke: #FFB800;"></i>
+                                        <span>4.8</span>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="package.html?id=${tour.id}" class="btn btn-secondary btn-book" style="padding: 0.6rem 1rem; font-size: 0.8rem;">Details</a>
+                                        <button class="btn btn-primary btn-book" style="padding: 0.6rem 1rem; font-size: 0.8rem;" onclick="bookTour(${tour.id}, '${tour.destination.replace(/'/g, "\\'")}', ${tour.price}, '${image}')">Book Now</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                    toursContainer.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            }
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+            
+            window.showToast(`Found ${filtered.length} matching packages!`, "success");
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dest = urlParams.get('dest');
+            const budget = urlParams.get('budget');
+            if (dest) document.getElementById('search-dest').value = dest;
+            if (budget) document.getElementById('search-budget').value = budget;
+            
+            // Wait for app.js to initialize first, then run initial filter
+            setTimeout(filterTours, 150);
+        });
+    </script>
+</body>
+</html>

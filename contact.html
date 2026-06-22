@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | GlobeTrek Adventures</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Get in touch with GlobeTrek Adventures. Reach our travel experts for bookings, support, and custom luxury itineraries.">
+    <meta name="keywords" content="contact us, travel support, luxury travel inquiry, GlobeTrek contact">
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="Contact Us | GlobeTrek Adventures">
+    <meta property="og:description" content="Get in touch with GlobeTrek Adventures. Reach our travel experts for bookings, support, and custom luxury itineraries.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <!-- ==========================================
+       NAVIGATION HEADER (GLASSMORPHISM)
+       ========================================== -->
+    <nav class="navbar" id="main-navbar">
+        <div class="container">
+            <a href="index.html" class="logo-wrapper" id="nav-logo">
+                <img src="logo.png" alt="GlobeTrek Logo" style="height: 36px; width: auto; object-fit: contain;">
+                <span>GlobeTrek</span>
+            </a>
+            
+            <ul class="nav-links" id="desktop-nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="packages.html">Packages</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html" class="active">Contact</a></li>
+            </ul>
+            
+            <div class="nav-auth" id="nav-auth-container">
+                <!-- Injected dynamically by app.js (initAuth) -->
+                <a href="login.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Login</a>
+                <a href="login.html?signup=true" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+            
+            <button class="hamburger" id="hamburger-toggle" aria-label="Toggle Navigation Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+       MOBILE DRAWER NAVIGATION
+       ========================================== -->
+    <div class="mobile-drawer-overlay" id="mobile-overlay"></div>
+    <aside class="mobile-drawer" id="mobile-drawer">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html"><i data-lucide="home" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Home</a></li>
+            <li><a href="packages.html"><i data-lucide="map" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Packages</a></li>
+            <li><a href="about.html"><i data-lucide="info" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> About Us</a></li>
+            <li><a href="contact.html" class="active"><i data-lucide="phone" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Contact</a></li>
+        </ul>
+        <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0;">
+        <ul class="mobile-nav-links" id="mobile-nav-auth-container">
+            <!-- Injected dynamically by app.js (initAuth) -->
+            <li><a href="login.html"><i data-lucide="log-in"></i> Login</a></li>
+            <li><a href="login.html?signup=true"><i data-lucide="user-plus"></i> Sign Up</a></li>
+        </ul>
+    </aside>
+
+    <!-- ==========================================
+       SUB-HERO BANNER
+       ========================================== -->
+    <header class="hero" id="home-hero" style="min-height: 45vh; height: 45vh; background: linear-gradient(rgba(10, 10, 26, 0.5), rgba(10, 10, 26, 0.75)), url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1920&q=80') no-repeat center center/cover;">
+        <div class="container">
+            <div class="hero-content" style="max-width: 700px; padding-top: 2rem;">
+                <h1 class="sub-hero-title">Get in Touch</h1>
+                <p class="hero-desc" style="font-size: 1.1rem; margin-bottom: 0;">Have a question about a trip or need a custom itinerary? Our travel experts are ready to help.</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+       CONTACT SECTION
+       ========================================== -->
+    <main class="section-padding" style="background-color: var(--white);">
+        <div class="container">
+            <div class="contact-grid">
+                
+                <!-- Contact Form -->
+                <div>
+                    <div class="tours-header" style="text-align: left; margin-bottom: 2rem;">
+                        <h2>Send Us a Message</h2>
+                        <p>Fill out the form below and we will respond within 24 hours.</p>
+                    </div>
+                    
+                    <form class="auth-form" id="contact-form" onsubmit="event.preventDefault(); submitContact();">
+                        <div class="form-group">
+                            <label for="contact-name">Full Name</label>
+                            <div class="input-container">
+                                <i data-lucide="user"></i>
+                                <input type="text" id="contact-name" name="name" placeholder="Enter your full name" required autocomplete="name">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label for="contact-email">Email Address</label>
+                                <div class="input-container">
+                                    <i data-lucide="mail"></i>
+                                    <input type="email" id="contact-email" name="email" placeholder="you@example.com" required autocomplete="email">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="contact-phone">Phone Number</label>
+                                <div class="input-container">
+                                    <i data-lucide="phone"></i>
+                                    <input type="tel" id="contact-phone" name="phone" placeholder="+94 76 123 4567" autocomplete="tel">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-subject">Subject</label>
+                            <div class="input-container">
+                                <i data-lucide="help-circle"></i>
+                                <select id="contact-subject" name="subject" required>
+                                    <option value="">Select a topic</option>
+                                    <option value="booking">Booking Inquiry</option>
+                                    <option value="support">Customer Support</option>
+                                    <option value="partnership">Partnership</option>
+                                    <option value="general">General Question</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-message">Message</label>
+                            <div class="input-container">
+                                <i data-lucide="message-square" style="top: 1.2rem;"></i>
+                                <textarea id="contact-message" name="message" placeholder="How can we help you?" required minlength="10" style="padding-left: 3rem; padding-top: 0.9rem;"></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem;">
+                            <i data-lucide="send" style="width: 18px; height: 18px;"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Contact Info -->
+                <div style="background-color: var(--bg-light); padding: 2.5rem; border-radius: var(--border-radius-md); border: 1px solid rgba(10, 10, 26, 0.03);">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Contact Information</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Our team is available around the clock to assist with your luxury travel needs.</p>
+                    
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+                        <li style="display: flex; align-items: center; gap: 1rem; color: var(--text-main);">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                <i data-lucide="phone" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">Phone</strong>
+                                <span>+94 31 223 4567</span>
+                            </div>
+                        </li>
+                        <li style="display: flex; align-items: center; gap: 1rem; color: var(--text-main);">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                <i data-lucide="mail" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">Email</strong>
+                                <span>support@globetrek.lk</span>
+                            </div>
+                        </li>
+                        <li style="display: flex; align-items: center; gap: 1rem; color: var(--text-main);">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                <i data-lucide="map-pin" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">Address</strong>
+                                <span>No. 45, Lewis Place<br>Negombo 11500, Sri Lanka</span>
+                            </div>
+                        </li>
+                        <li style="display: flex; align-items: center; gap: 1rem; color: var(--text-main);">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: rgba(0,0,255,0.08); display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                <i data-lucide="clock" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.2rem;">Hours</strong>
+                                <span>24 / 7 Travel Support</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==========================================
+       FOOTER
+       ========================================== -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo-wrapper" style="color: var(--white); gap: 0.8rem;">
+                        <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);">
+                        <span>GlobeTrek</span>
+                    </a>
+                    <p>Building memories, one journey at a time. Book premium flights, stays, and guided explorations with the world's leading travel network.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul class="footer-links">
+                        <li><a href="packages.html">Trending Tours</a></li>
+                        <li><a href="packages.html">Seasonal Deals</a></li>
+                        <li><a href="about.html">Our Story</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Cancellation Policy</a></li>
+                        <li><a href="#">Contact Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Contact Us</h3>
+                    <ul class="footer-links" style="color: rgba(255,255,255,0.65); font-size: 0.95rem;">
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="phone" style="width: 16px; height: 16px; color: var(--primary);"></i> +94 31 223 4567</li>
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="mail" style="width: 16px; height: 16px; color: var(--primary);"></i> support@globetrek.lk</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 GlobeTrek Adventures. All Rights Reserved.</p>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global scripts link -->
+    <script src="app.js"></script>
+
+    <!-- Contact page form handler -->
+    <script>
+        function submitContact() {
+            const form = document.getElementById('contact-form');
+            if (!form) return;
+            
+            if (window.showToast) {
+                window.showToast('Thank you for reaching out! We will get back to you within 24 hours.', 'success');
+            } else {
+                alert('Thank you for reaching out! We will get back to you within 24 hours.');
+            }
+            
+            form.reset();
+        }
+    </script>
+</body>
+</html>

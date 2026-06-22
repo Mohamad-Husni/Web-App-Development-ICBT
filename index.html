@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobeTrek Adventures | Premium Travel Booking Platform</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Embark on premium curated journeys with GlobeTrek Adventures. Search and book custom itineraries, luxury tours, and breathtaking vacation packages globally.">
+    <meta name="keywords" content="travel booking, luxury tours, vacation packages, custom trips, premium travel">
+    <meta name="author" content="GlobeTrek Adventures">
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="GlobeTrek Adventures | Premium Travel Booking Platform">
+    <meta property="og:description" content="Embark on premium curated journeys with GlobeTrek Adventures. Search and book custom itineraries, luxury tours, and breathtaking vacation packages globally.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js and page guards) -->
+    <script src="env.js"></script>
+</head>
+<body>
+
+    <!-- ==========================================
+       NAVIGATION HEADER (GLASSMORPHISM)
+       ========================================== -->
+    <nav class="navbar" id="main-navbar">
+        <div class="container">
+            <a href="index.html" class="logo-wrapper" id="nav-logo">
+                <img src="logo.png" alt="GlobeTrek Logo" style="height: 36px; width: auto; object-fit: contain;">
+                <span>GlobeTrek</span>
+            </a>
+            
+            <ul class="nav-links" id="desktop-nav-links">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="packages.html">Packages</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            
+            <div class="nav-auth" id="nav-auth-container">
+                <!-- Injected dynamically by app.js (initAuth) -->
+                <a href="login.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Login</a>
+                <a href="login.html?signup=true" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+            
+            <button class="hamburger" id="hamburger-toggle" aria-label="Toggle Navigation Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+       MOBILE DRAWER NAVIGATION
+       ========================================== -->
+    <div class="mobile-drawer-overlay" id="mobile-overlay"></div>
+    <aside class="mobile-drawer" id="mobile-drawer">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html"><i data-lucide="home" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Home</a></li>
+            <li><a href="packages.html"><i data-lucide="map" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Packages</a></li>
+            <li><a href="about.html"><i data-lucide="info" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> About Us</a></li>
+            <li><a href="contact.html"><i data-lucide="phone" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Contact</a></li>
+        </ul>
+        <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0;">
+        <ul class="mobile-nav-links" id="mobile-nav-auth-container">
+            <!-- Injected dynamically by app.js (initAuth) -->
+            <li><a href="login.html"><i data-lucide="log-in"></i> Login</a></li>
+            <li><a href="login.html?signup=true"><i data-lucide="user-plus"></i> Sign Up</a></li>
+        </ul>
+    </aside>
+
+    <!-- ==========================================
+       HERO SECTION (EDGE-TO-EDGE)
+       ========================================== -->
+    <header class="hero" id="home-hero">
+        <div class="container">
+            <div class="hero-content">
+                <p class="hero-tagline"><span></span>Curated Luxury Experiences</p>
+                <h1>Adventure Awaits,<br>Find Your Next Journey</h1>
+                <p class="hero-desc">Discover handpicked premium travel destinations, custom itineraries, and worry-free reservations designed by expert guides.</p>
+                
+                <!-- Premium Search Widget (Simple: big search bar + basic filters first, extras on demand) -->
+                <form class="search-widget search-widget--simple" id="hero-search-form" onsubmit="event.preventDefault(); submitHeroSearch();">
+
+                    <!-- Big destination search bar (always visible) -->
+                    <div class="search-basic">
+                        <div class="search-field search-field--main">
+                            <label for="search-dest">Where do you want to go?</label>
+                            <div class="search-input-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="search-dest" name="destination" placeholder="Search destinations, e.g. Bali, Swiss Alps...">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-search-submit">
+                            <i data-lucide="navigation"></i> Explore
+                        </button>
+                    </div>
+
+                    <!-- Basic filters shown first: dates + number of travelers -->
+                    <div class="search-basic-filters">
+                        <div class="search-field">
+                            <label for="search-checkin">Check-in</label>
+                            <div class="search-input-wrapper">
+                                <i data-lucide="calendar"></i>
+                                <input type="date" id="search-checkin" name="checkin">
+                            </div>
+                        </div>
+                        <div class="search-field">
+                            <label for="search-checkout">Check-out</label>
+                            <div class="search-input-wrapper">
+                                <i data-lucide="calendar-check"></i>
+                                <input type="date" id="search-checkout" name="checkout" aria-describedby="search-checkout-error">
+                            </div>
+                            <p class="field-error" id="search-checkout-error" role="alert" aria-live="polite"></p>
+                        </div>
+                        <div class="search-field">
+                            <label for="search-travelers">Travelers</label>
+                            <div class="search-input-wrapper">
+                                <i data-lucide="users"></i>
+                                <select id="search-travelers" name="travelers">
+                                    <option value="">Any group size</option>
+                                    <option value="1">1 Traveler</option>
+                                    <option value="2">2 Travelers</option>
+                                    <option value="3">3+ Travelers</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle: reveal extra filters only when needed -->
+                    <button type="button" class="search-more-toggle" id="search-more-toggle" aria-expanded="false" aria-controls="advanced-filters" onclick="toggleAdvancedFilters()">
+                        <i data-lucide="sliders-horizontal"></i>
+                        <span id="search-more-label">More filters</span>
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+
+                    <!-- Extra filters: hidden until needed -->
+                    <div class="advanced-filters" id="advanced-filters" hidden>
+                        <div class="search-field">
+                            <label for="search-budget">Max Budget</label>
+                            <div class="search-input-wrapper">
+                                <i data-lucide="wallet"></i>
+                                <select id="search-budget" name="budget">
+                                    <option value="">Any Budget</option>
+                                    <option value="1500">Under LKR 1,500</option>
+                                    <option value="2000">Under LKR 2,000</option>
+                                    <option value="2500">Under LKR 2,500</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+       FEATURED PACKAGES PREVIEW GRID
+       ========================================== -->
+    <section class="section-padding" id="packages">
+        <div class="container">
+            <div class="tours-header">
+                <h2>Featured Escapes</h2>
+                <p>Discover some of our highest-rated luxury travel experiences. Click below to explore all active packages.</p>
+            </div>
+            
+            <!-- Featured cards are loaded live from Supabase (same source as the Packages page) -->
+            <div class="tours-grid" id="featured-grid">
+                <p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem 0;">Loading featured escapes…</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 4rem;">
+                <a href="packages.html" class="btn btn-secondary" style="padding: 1rem 2.5rem; font-size: 1rem;">
+                    <i data-lucide="compass"></i> View All Packages
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+       NEWSLETTER SIGNUP SECTION (VISUAL POLISH)
+       ========================================== -->
+    <section class="section-padding" id="newsletter" style="background: linear-gradient(135deg, var(--dark), var(--dark-hover)); color: var(--white); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -10%; right: -10%; width: 300px; height: 300px; border-radius: 50%; background-color: rgba(0,0,255,0.06); filter: blur(50px);"></div>
+        <div style="position: absolute; bottom: -10%; left: -10%; width: 400px; height: 400px; border-radius: 50%; background-color: rgba(0,0,255,0.04); filter: blur(70px);"></div>
+        
+        <div class="container" style="position: relative; z-index: 2; text-align: center; max-width: 700px;">
+            <h2 style="color: var(--white); font-size: 2.5rem; margin-bottom: 1rem;">Join the GlobeTrek Club</h2>
+            <p style="color: rgba(255,255,255,0.75); margin-bottom: 2.5rem; font-size: 1.05rem;">Receive weekly updates on private deals, seasonal discounts, and secret escapes directly to your inbox.</p>
+            
+            <form style="display: flex; gap: 1rem; flex-wrap: wrap;" onsubmit="event.preventDefault(); window.showToast('Thank you for subscribing!', 'success'); this.reset();">
+                <input type="email" name="email" autocomplete="email" inputmode="email" placeholder="Enter your email address" required style="flex: 1; min-width: 250px; padding: 1rem 1.5rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(255,255,255,0.15); background-color: rgba(255,255,255,0.08); color: var(--white); font-size: 0.95rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem;">Subscribe Now</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ==========================================
+       FOOTER
+       ========================================== -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo-wrapper" style="color: var(--white); gap: 0.8rem;">
+                        <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain; filter: brightness(0) invert(1);">
+                        <span>GlobeTrek</span>
+                    </a>
+                    <p>Building memories, one journey at a time. Book premium flights, stays, and guided explorations with the world's leading travel network.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul class="footer-links">
+                        <li><a href="packages.html">Trending Tours</a></li>
+                        <li><a href="packages.html">Seasonal Deals</a></li>
+                        <li><a href="about.html">Our Story</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Cancellation Policy</a></li>
+                        <li><a href="#">Safety Guidelines</a></li>
+                        <li><a href="#">Contact Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Contact Us</h3>
+                    <ul class="footer-links" style="color: rgba(255,255,255,0.65); font-size: 0.95rem;">
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="phone" style="width: 16px; height: 16px; color: var(--primary);"></i> +94 31 223 4567</li>
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="mail" style="width: 16px; height: 16px; color: var(--primary);"></i> support@globetrek.lk</li>
+                        <li style="display: flex; align-items: center; gap: 0.8rem;"><i data-lucide="map-pin" style="width: 16px; height: 16px; color: var(--primary);"></i> Lewis Place, Negombo, Sri Lanka</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 GlobeTrek Adventures. All Rights Reserved.</p>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global scripts link -->
+    <script src="app.js"></script>
+
+    <!-- Progressive search: show extra filters only when needed -->
+    <script>
+        function toggleAdvancedFilters() {
+            const panel = document.getElementById('advanced-filters');
+            const toggle = document.getElementById('search-more-toggle');
+            const label = document.getElementById('search-more-label');
+            if (!panel || !toggle) return;
+
+            const isHidden = panel.hasAttribute('hidden');
+            if (isHidden) {
+                panel.removeAttribute('hidden');
+                toggle.classList.add('open');
+                toggle.setAttribute('aria-expanded', 'true');
+                if (label) label.textContent = 'Fewer filters';
+            } else {
+                panel.setAttribute('hidden', '');
+                toggle.classList.remove('open');
+                toggle.setAttribute('aria-expanded', 'false');
+                if (label) label.textContent = 'More filters';
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // Field-level validation: check-out must be at least one day after check-in
+        function validateCheckoutDate() {
+            const checkin = document.getElementById('search-checkin');
+            const checkout = document.getElementById('search-checkout');
+            const field = checkout.closest('.search-field');
+            const errorEl = document.getElementById('search-checkout-error');
+            let message = '';
+
+            if (checkin.value && checkout.value) {
+                const oneDay = 24 * 60 * 60 * 1000;
+                if (new Date(checkout.value) - new Date(checkin.value) < oneDay) {
+                    message = 'Check-out date must be at least one day after check-in.';
+                }
+            }
+
+            if (message) {
+                field.classList.add('has-error');
+                errorEl.textContent = message;
+            } else {
+                field.classList.remove('has-error');
+                errorEl.textContent = '';
+            }
+            return !message;
+        }
+
+        function submitHeroSearch() {
+            if (!validateCheckoutDate()) {
+                document.getElementById('search-checkout').focus();
+                if (window.showToast) window.showToast('Please fix the highlighted dates.', 'error');
+                return;
+            }
+            const dest = encodeURIComponent(document.getElementById('search-dest').value);
+            const budget = document.getElementById('search-budget').value;
+            window.location.href = 'packages.html?dest=' + dest + '&budget=' + budget;
+        }
+
+        // Load Featured Escapes live from Supabase (same data as the Packages page)
+        async function loadFeatured() {
+            const grid = document.getElementById('featured-grid');
+            if (!grid) return;
+
+            let packages = [];
+            try {
+                packages = await window.fetchPackages();
+            } catch (e) {
+                grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem 0;">Could not load featured packages right now.</p>`;
+                return;
+            }
+
+            if (!packages.length) {
+                grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem 0;">No packages available yet. Check back soon!</p>`;
+                return;
+            }
+
+            grid.innerHTML = packages.slice(0, 3).map(pkg => {
+                const img = pkg.image_url || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80';
+                const price = Number(pkg.price || 0).toLocaleString();
+                const dest = (pkg.destination || '').replace(/"/g, '&quot;');
+                return `
+                    <article class="tour-card">
+                        <div class="tour-img-wrapper">
+                            <img src="${img}" alt="${dest}" loading="lazy">
+                            <span class="tour-badge">Getaway</span>
+                            <span class="tour-price-tag">LKR ${price}</span>
+                        </div>
+                        <div class="tour-details">
+                            <div class="tour-meta">
+                                <span><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ${pkg.duration || 'Flexible'}</span>
+                                <span><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> ${dest}</span>
+                            </div>
+                            <h3>${dest}</h3>
+                            <p class="tour-desc">${pkg.description || ''}</p>
+                            <div class="tour-footer">
+                                <div class="tour-rating">
+                                    <i data-lucide="star" style="width: 16px; height: 16px; fill: #FFB800; stroke: #FFB800;"></i>
+                                    <span>4.8</span>
+                                </div>
+                                <a href="package.html?id=${pkg.id}" class="btn btn-primary btn-book">Explore Details</a>
+                            </div>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFeatured();
+
+            const fieldIds = ['search-dest', 'search-checkin', 'search-checkout', 'search-travelers', 'search-budget'];
+            const DRAFT_KEY = 'globetrek_search_draft';
+
+            // Recover any in-progress search if the user navigated away (sessionStorage)
+            try {
+                const draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}');
+                fieldIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && draft[id] !== undefined) el.value = draft[id];
+                });
+            } catch (e) { /* sessionStorage unavailable */ }
+
+            // Auto-save search progress as the user edits
+            const saveSearchDraft = () => {
+                try {
+                    const draft = {};
+                    fieldIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) draft[id] = el.value;
+                    });
+                    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                } catch (e) { /* sessionStorage unavailable */ }
+            };
+
+            const checkin = document.getElementById('search-checkin');
+            const checkout = document.getElementById('search-checkout');
+            const today = new Date().toISOString().split('T')[0];
+            if (checkin) checkin.min = today;
+
+            // Keep check-out at least one day after the chosen check-in
+            const syncCheckoutMin = () => {
+                if (checkin && checkin.value) {
+                    const next = new Date(checkin.value);
+                    next.setDate(next.getDate() + 1);
+                    checkout.min = next.toISOString().split('T')[0];
+                } else if (checkout) {
+                    checkout.min = today;
+                }
+            };
+            syncCheckoutMin();
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', saveSearchDraft);
+                    el.addEventListener('change', saveSearchDraft);
+                }
+            });
+
+            // Validate dates when the user clicks out of the field (on blur)
+            if (checkin) checkin.addEventListener('blur', () => { syncCheckoutMin(); validateCheckoutDate(); });
+            if (checkout) checkout.addEventListener('blur', validateCheckoutDate);
+            if (checkin) checkin.addEventListener('change', syncCheckoutMin);
+        });
+    </script>
+</body>
+</html>

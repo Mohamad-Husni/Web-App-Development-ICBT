@@ -1,0 +1,4 @@
+﻿.claude/
+
+# Secret environment variables (service_role key lives here - never commit)
+.env

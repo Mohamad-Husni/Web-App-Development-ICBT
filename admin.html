@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrator Console | GlobeTrek Adventures</title>
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="Administrator Console | GlobeTrek Adventures">
+    <meta property="og:description" content="Root admin panel to manage active tour packages and customer bookings.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js and page guards) -->
+    <script src="env.js"></script>
+    
+    <!-- ==========================================
+       ADMIN SESSION GUARD (EXECUTES IMMEDIATELY)
+       ========================================== -->
+    <script>
+        // Route guard: only users with role = 'admin' (in the profiles table) may enter.
+        (async function verifyAdminSession() {
+            const cfg = window.GLOBETREK_CONFIG || {};
+            if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+                window.location.replace('login.html');
+                return;
+            }
+            try {
+                window.supabaseClient = window.supabaseClient ||
+                    window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+                let session = (await window.supabaseClient.auth.getSession()).data.session;
+
+                // If the URL still carries an OAuth hash, wait briefly for Supabase to process it.
+                if (!session && window.location.hash.includes('access_token=')) {
+                    let resolved = false;
+                    const { data: listener } = window.supabaseClient.auth.onAuthStateChange((event, newSession) => {
+                        if (newSession && !resolved) {
+                            resolved = true;
+                            listener.subscription.unsubscribe();
+                        }
+                    });
+                    await new Promise(r => setTimeout(r, 1500));
+                    listener.subscription.unsubscribe();
+                    session = (await window.supabaseClient.auth.getSession()).data.session;
+                }
+
+                if (!session) {
+                    window.location.replace('login.html');
+                    return;
+                }
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+                if (!profile || profile.role !== 'admin') {
+                    window.location.replace('dashboard.html');
+                }
+            } catch (err) {
+                console.error('Admin verification failed:', err);
+                window.location.replace('dashboard.html');
+            }
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- Mobile Top Header -->
+    <header class="dashboard-mobile-header">
+        <button class="hamburger-btn" id="dashboard-sidebar-toggle" aria-label="Toggle Sidebar Menu">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="index.html" class="sidebar-logo" style="color: var(--dark);">
+            <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain;">
+            <span>GlobeTrek</span>
+        </a>
+        <div style="width: 32px;"></div> <!-- Spacer to center logo -->
+    </header>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="dashboard-layout">
+        <!-- ==========================================
+           LEFT PANEL: FIXED SIDEBAR (ADMIN EDITION)
+           ========================================== -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-top">
+                <a href="index.html" class="sidebar-logo">
+                    <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain;">
+                    <span>GlobeTrek Admin</span>
+                </a>
+                
+                <ul class="sidebar-menu">
+                    <li><a href="#packages" class="sidebar-link active" id="tab-packages-link"><i data-lucide="map"></i> Manage Packages</a></li>
+                    <li><a href="#bookings" class="sidebar-link" id="tab-bookings-link"><i data-lucide="luggage"></i> View Bookings</a></li>
+                    <li><a href="#customers" class="sidebar-link" id="tab-customers-link"><i data-lucide="users"></i> Customers</a></li>
+                    <li><a href="#settings" class="sidebar-link" id="tab-settings-link"><i data-lucide="settings"></i> Settings</a></li>
+                    <li style="border-top: 1px solid rgba(255,255,255,0.08); margin-top: 1rem; padding-top: 1rem;"><a href="dashboard.html" class="sidebar-link" style="color: rgba(255,255,255,0.75);"><i data-lucide="user"></i> Traveler Portal</a></li>
+                    <li><a href="index.html" class="sidebar-link" style="color: rgba(255,255,255,0.75);"><i data-lucide="home"></i> View Website</a></li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-widget" id="user-profile-sidebar">
+                    <div class="user-avatar" id="profile-avatar" style="background-color: #FF3B30;">A</div>
+                    <div class="user-details-small">
+                        <span class="user-name-small" id="profile-name">Administrator</span>
+                        <span class="user-email-small" id="profile-email">admin@globetrek.lk</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-white" id="sidebar-logout-btn" style="width: 100%; gap: 0.5rem; justify-content: center; padding: 0.75rem 1rem;">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- ==========================================
+           RIGHT PANEL: MAIN CONTENT PORTAL
+           ========================================== -->
+        <main class="dashboard-main">
+            <!-- Admin Navigation Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1 id="admin-header-title">Packages Management Console</h1>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;" id="greeting-date">Monday, June 15, 2026</p>
+                </div>
+                
+                <div class="dashboard-header-right">
+                    <span style="font-size: 0.8rem; background-color: rgba(255,59,48,0.1); color: #FF3B30; padding: 0.4rem 0.8rem; border-radius: 50px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <i data-lucide="shield" style="width: 12px; height: 12px;"></i> Root Mode
+                    </span>
+                </div>
+            </header>
+            
+            <div class="dashboard-content">
+                
+                <!-- ==========================================
+                   TAB SECTION 1: PACKAGES CRUD CONSOLE
+                   ========================================== -->
+                <div id="section-packages" class="admin-tab-content">
+                    <div class="dashboard-panels-grid" style="grid-template-columns: 0.8fr 1.2fr;">
+                        
+                        <!-- Left Panel: Create / Update Package Form -->
+                        <section class="panel-card" style="align-self: start;">
+                            <div class="panel-header">
+                                <h2 id="form-title">Create New Package</h2>
+                                <i data-lucide="plus-circle" style="color: var(--primary);"></i>
+                            </div>
+                            
+                            <form id="package-editor-form" class="auth-form" style="gap: 1.2rem;">
+                                <input type="hidden" id="edit-package-id" value="">
+                                
+                                <div class="form-group">
+                                    <label for="pkg-destination">Destination Title</label>
+                                    <div class="input-container">
+                                        <i data-lucide="map-pin"></i>
+                                        <input type="text" id="pkg-destination" placeholder="e.g. Kyoto, Japan" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-duration">Duration</label>
+                                    <div class="input-container">
+                                        <i data-lucide="clock"></i>
+                                        <input type="text" id="pkg-duration" placeholder="e.g. 5 Days / 4 Nights" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-price">Price (LKR)</label>
+                                    <div class="input-container">
+                                        <i data-lucide="wallet"></i>
+                                        <input type="number" id="pkg-price" placeholder="e.g. 1500" required min="1">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-image">Image URL</label>
+                                    <div class="input-container">
+                                        <i data-lucide="image"></i>
+                                        <input type="url" id="pkg-image" placeholder="https://unsplash.com/photo-..." required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-desc">Description Snippet</label>
+                                    <div class="input-container">
+                                        <i data-lucide="align-left" style="top: 1.2rem;"></i>
+                                        <textarea id="pkg-desc" placeholder="Write a short luxury description details..." required style="padding-left: 3rem; padding-top: 0.9rem;"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-gallery">Photo Gallery <span style="color: var(--text-muted); font-weight: 400;">— one image URL per line</span></label>
+                                    <div class="input-container">
+                                        <i data-lucide="images" style="top: 1.2rem;"></i>
+                                        <textarea id="pkg-gallery" placeholder="https://images.unsplash.com/photo-...&#10;https://images.unsplash.com/photo-..." style="padding-left: 3rem; padding-top: 0.9rem; min-height: 80px;"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-route">Route / Itinerary <span style="color: var(--text-muted); font-weight: 400;">— one stop per line</span></label>
+                                    <div class="input-container">
+                                        <i data-lucide="route" style="top: 1.2rem;"></i>
+                                        <textarea id="pkg-route" placeholder="Day 1: Arrival &amp; welcome dinner&#10;Day 2: Guided city tour" style="padding-left: 3rem; padding-top: 0.9rem; min-height: 80px;"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pkg-hotels">Hotels in the Area <span style="color: var(--text-muted); font-weight: 400;">— one per line</span></label>
+                                    <div class="input-container">
+                                        <i data-lucide="bed-double" style="top: 1.2rem;"></i>
+                                        <textarea id="pkg-hotels" placeholder="The Grand Resort — 5-star beachfront&#10;Lagoon Boutique Hotel — boutique stay" style="padding-left: 3rem; padding-top: 0.9rem; min-height: 80px;"></textarea>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.85rem;" id="btn-save-package">Save Poster</button>
+                                    <button type="button" class="btn btn-secondary" style="display: none; padding: 0.85rem;" id="btn-cancel-edit">Cancel</button>
+                                </div>
+                            </form>
+                        </section>
+                        
+                        <!-- Right Panel: Packages Listing Table -->
+                        <section class="panel-card">
+                            <div class="panel-header">
+                                <h2>Active Posters Listing</h2>
+                                <span style="font-size: 0.8rem; background-color: var(--primary-light); color: var(--primary); padding: 0.3rem 0.6rem; border-radius: 50px; font-weight: 600;" id="pkg-badge-count">0 Posters</span>
+                            </div>
+                            
+                            <div class="bookings-table-wrapper">
+                                <table class="bookings-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Package Detail</th>
+                                            <th>Duration</th>
+                                            <th>Price</th>
+                                            <th style="text-align: right;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="packages-table-body">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- ==========================================
+                   TAB SECTION 2: GLOBAL BOOKINGS CONSOLE
+                   ========================================== -->
+                <div id="section-bookings" class="admin-tab-content" style="display: none;">
+                    <section class="panel-card">
+                        <div class="panel-header">
+                            <h2>All Customer Bookings</h2>
+                            <span style="font-size: 0.8rem; background-color: #E6F7ED; color: #1A7F37; padding: 0.3rem 0.6rem; border-radius: 50px; font-weight: 600;" id="bookings-badge-count">0 Orders</span>
+                        </div>
+                        
+                        <div class="bookings-table-wrapper">
+                            <table class="bookings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Email</th>
+                                        <th>Destination Booking</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Operations</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-bookings-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- ==========================================
+                   TAB SECTION 3: CUSTOMERS
+                   ========================================== -->
+                <div id="section-customers" class="admin-tab-content" style="display: none;">
+                    <section class="panel-card">
+                        <div class="panel-header">
+                            <h2>Registered Customers</h2>
+                            <span style="font-size: 0.8rem; background-color: var(--primary-light); color: var(--primary); padding: 0.3rem 0.6rem; border-radius: 50px; font-weight: 600;" id="customers-badge-count">0 Users</span>
+                        </div>
+
+                        <div class="bookings-table-wrapper">
+                            <table class="bookings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th style="text-align: right;">Role</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- ==========================================
+                   TAB SECTION 4: SETTINGS
+                   ========================================== -->
+                <div id="section-settings" class="admin-tab-content" style="display: none;">
+                    <section class="panel-card" style="max-width: 540px;">
+                        <div class="panel-header">
+                            <h2>Account Settings</h2>
+                            <i data-lucide="settings" style="color: var(--primary);"></i>
+                        </div>
+
+                        <form id="settings-form" class="auth-form" style="gap: 1.2rem;">
+                            <div class="form-group">
+                                <label for="settings-fullname">Full Name</label>
+                                <div class="input-container">
+                                    <i data-lucide="user"></i>
+                                    <input type="text" id="settings-fullname" placeholder="Your full name" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="settings-email">Email (read-only)</label>
+                                <div class="input-container">
+                                    <i data-lucide="mail"></i>
+                                    <input type="email" id="settings-email" placeholder="you@example.com" disabled>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="padding: 0.85rem;" id="btn-save-settings">Save Changes</button>
+                        </form>
+                    </section>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Import global app engine -->
+    <script src="app.js"></script>
+
+    <!-- Admin Portal Script Engine -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // UI elements
+            const pkgsTableBody = document.getElementById('packages-table-body');
+            const bookingsTableBody = document.getElementById('all-bookings-table-body');
+            const pkgBadgeCount = document.getElementById('pkg-badge-count');
+            const bookingsBadgeCount = document.getElementById('bookings-badge-count');
+            const greetingDate = document.getElementById('greeting-date');
+            
+            // Form Elements
+            const form = document.getElementById('package-editor-form');
+            const formTitle = document.getElementById('form-title');
+            const editIdInput = document.getElementById('edit-package-id');
+            const destInput = document.getElementById('pkg-destination');
+            const durationInput = document.getElementById('pkg-duration');
+            const priceInput = document.getElementById('pkg-price');
+            const imgInput = document.getElementById('pkg-image');
+            const descInput = document.getElementById('pkg-desc');
+            const galleryInput = document.getElementById('pkg-gallery');
+            const routeInput = document.getElementById('pkg-route');
+            const hotelsInput = document.getElementById('pkg-hotels');
+            const saveBtn = document.getElementById('btn-save-package');
+            const cancelBtn = document.getElementById('btn-cancel-edit');
+            
+            // Header elements
+            const headerTitle = document.getElementById('admin-header-title');
+            const sidebarName = document.getElementById('profile-name');
+            const sidebarEmail = document.getElementById('profile-email');
+            
+            // Format current date
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            greetingDate.textContent = new Date().toLocaleDateString('en-US', dateOptions);
+
+            // Fetch user profile session details from Supabase
+            (async () => {
+                const session = await window.getSession();
+                const profile = await window.getCurrentProfile();
+                if (session) renderProfile(session.user, profile);
+            })();
+
+            function renderProfile(user, profile) {
+                if (!user) return;
+                sidebarName.textContent = (profile && profile.full_name) || user.user_metadata?.full_name || user.email.split('@')[0];
+                sidebarEmail.textContent = user.email;
+            }
+
+            // ==========================================
+            // ADMIN ROUTING & SLUGS ROUTER
+            // ==========================================
+            const tabs = {
+                '#packages': {
+                    section: document.getElementById('section-packages'),
+                    link: document.getElementById('tab-packages-link'),
+                    title: 'Packages Management Console'
+                },
+                '#bookings': {
+                    section: document.getElementById('section-bookings'),
+                    link: document.getElementById('tab-bookings-link'),
+                    title: 'Customer Orders Management'
+                },
+                '#customers': {
+                    section: document.getElementById('section-customers'),
+                    link: document.getElementById('tab-customers-link'),
+                    title: 'Registered Customers'
+                },
+                '#settings': {
+                    section: document.getElementById('section-settings'),
+                    link: document.getElementById('tab-settings-link'),
+                    title: 'Account Settings'
+                }
+            };
+
+            function handleRouting() {
+                const hash = window.location.hash || '#packages';
+                
+                // Hide all sections and de-activate links
+                Object.keys(tabs).forEach(key => {
+                    tabs[key].section.style.display = 'none';
+                    tabs[key].link.classList.remove('active');
+                });
+                
+                // Show active section
+                if (tabs[hash]) {
+                    tabs[hash].section.style.display = 'block';
+                    tabs[hash].link.classList.add('active');
+                    headerTitle.textContent = tabs[hash].title;
+                }
+                
+                if (hash === '#packages') {
+                    loadPackages();
+                } else if (hash === '#bookings') {
+                    loadBookings();
+                } else if (hash === '#customers') {
+                    loadCustomers();
+                } else if (hash === '#settings') {
+                    loadSettings();
+                }
+            }
+
+            window.addEventListener('hashchange', handleRouting);
+            handleRouting(); // trigger router on load
+
+            // ==========================================
+            // PACKAGES CRUD OPERATIONS
+            // ==========================================
+            async function loadPackages() {
+                pkgsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 2rem;">
+                            <div style="border: 3px solid var(--primary-light); border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        </td>
+                    </tr>
+                `;
+
+                let packagesList = [];
+                try {
+                    packagesList = await window.fetchPackages();
+                } catch (e) {
+                    pkgsTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">Could not load packages. Please try again.</td></tr>`;
+                    pkgBadgeCount.textContent = '0 Posters';
+                    return;
+                }
+
+                pkgBadgeCount.textContent = `${packagesList.length} Posters`;
+                pkgsTableBody.innerHTML = '';
+
+                if (packagesList.length === 0) {
+                    pkgsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active tour packages.</td></tr>`;
+                    return;
+                }
+
+                packagesList.forEach(pkg => {
+                    const row = `
+                        <tr>
+                            <td>
+                                <div class="booking-dest">
+                                    <img src="${pkg.image_url}" alt="${pkg.destination}" class="booking-dest-img">
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span>${pkg.destination}</span>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">${pkg.description || ''}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${pkg.duration || 'Flexible'}</td>
+                            <td style="font-weight: 600;">LKR ${parseFloat(pkg.price).toFixed(0)}</td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button class="btn btn-secondary" onclick="editPackage(${pkg.id})" style="padding: 0.35rem 0.7rem; font-size: 0.75rem;">Edit</button>
+                                    <button class="btn" onclick="triggerDelete(${pkg.id})" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; background-color: rgba(200, 30, 30, 0.1); color: #C81E1E;">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    pkgsTableBody.insertAdjacentHTML('beforeend', row);
+                });
+
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }
+
+            // Load a package into the editor form (fetches full record incl. details)
+            window.editPackage = async function(id) {
+                let pkg;
+                try {
+                    pkg = await window.fetchPackageById(id);
+                } catch (e) {
+                    window.showToast("Could not load package: " + e.message, "error");
+                    return;
+                }
+                if (!pkg) {
+                    window.showToast("Package not found.", "error");
+                    return;
+                }
+                formTitle.textContent = "Edit Tour Package";
+                editIdInput.value = pkg.id;
+                destInput.value = pkg.destination || '';
+                descInput.value = pkg.description || '';
+                priceInput.value = pkg.price || '';
+                durationInput.value = pkg.duration || '';
+                imgInput.value = pkg.image_url || '';
+                galleryInput.value = pkg.gallery || '';
+                routeInput.value = pkg.route || '';
+                hotelsInput.value = pkg.hotels || '';
+
+                saveBtn.textContent = "Update Poster";
+                cancelBtn.style.display = "block";
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                destInput.focus();
+            };
+
+            // Cancel Edit
+            cancelBtn.addEventListener('click', () => {
+                resetForm();
+            });
+
+            function resetForm() {
+                form.reset();
+                editIdInput.value = '';
+                formTitle.textContent = "Create New Package";
+                saveBtn.textContent = "Save Poster";
+                cancelBtn.style.display = "none";
+            }
+
+            // Handle Save Submit
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                saveBtn.disabled = true;
+                
+                const destination = destInput.value.trim();
+                const description = descInput.value.trim();
+                const price = priceInput.value;
+                const duration = durationInput.value.trim();
+                const imageUrl = imgInput.value.trim();
+                const editId = editIdInput.value;
+
+                const result = await window.savePackage(destination, description, price, duration, imageUrl, editId, {
+                    gallery: galleryInput.value.trim(),
+                    route: routeInput.value.trim(),
+                    hotels: hotelsInput.value.trim()
+                });
+                
+                if (result.success) {
+                    window.showToast(editId ? "Package updated successfully!" : "Package created successfully!", "success");
+                    resetForm();
+                    loadPackages();
+                } else {
+                    window.showToast("Operation failed: " + result.error, "error");
+                }
+                saveBtn.disabled = false;
+            });
+
+            // Handle Delete
+            window.triggerDelete = async function(id) {
+                if (confirm("Are you sure you want to delete this package? This cannot be undone.")) {
+                    const result = await window.deletePackage(id);
+                    if (result.success) {
+                        window.showToast("Package deleted successfully.", "success");
+                        loadPackages();
+                    } else {
+                        window.showToast("Deletion failed: " + result.error, "error");
+                    }
+                }
+            };
+
+            // ==========================================
+            // BOOKINGS MANAGEMENT
+            // ==========================================
+            async function loadBookings() {
+                bookingsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;"><div style="border:3px solid var(--primary-light);border-top:3px solid var(--primary);border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:0 auto;"></div></td></tr>`;
+
+                let bookings = [];
+                try {
+                    bookings = await window.fetchAllBookings();
+                } catch (e) {
+                    bookingsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">Could not load bookings.</td></tr>`;
+                    bookingsBadgeCount.textContent = '0 Orders';
+                    return;
+                }
+
+                bookingsBadgeCount.textContent = `${bookings.length} Orders`;
+                bookingsTableBody.innerHTML = '';
+
+                if (bookings.length === 0) {
+                    bookingsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 4rem 0;">No active bookings across the network.</td></tr>`;
+                    return;
+                }
+
+                bookings.forEach(booking => {
+                    const statusClass = booking.status === 'confirmed' ? 'confirmed' : 'pending';
+                    const email = (booking.profiles && booking.profiles.email) || 'unknown';
+
+                    const row = `
+                        <tr>
+                            <td style="font-weight: 500;">${email}</td>
+                            <td>
+                                <div class="booking-dest">
+                                    <img src="${booking.image || ''}" alt="${booking.title}" class="booking-dest-img">
+                                    <span>${booking.title}</span>
+                                </div>
+                            </td>
+                            <td style="font-weight: 600;">LKR ${Number(booking.price).toLocaleString()}</td>
+                            <td>
+                                <span class="status-badge ${statusClass}">
+                                    <i data-lucide="${booking.status === 'confirmed' ? 'check' : 'clock'}" style="width: 10px; height: 10px;"></i>
+                                    ${booking.status}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button class="btn btn-secondary" onclick="toggleBookingStatus(${booking.id}, '${booking.status}')" style="padding: 0.35rem 0.7rem; font-size: 0.75rem;">Status</button>
+                                    <button class="btn" onclick="cancelCustomerBooking(${booking.id})" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; background-color: rgba(200, 30, 30, 0.1); color: #C81E1E;">Remove</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    bookingsTableBody.insertAdjacentHTML('beforeend', row);
+                });
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // Toggle booking status between pending & confirmed (Supabase)
+            window.toggleBookingStatus = async function(id, currentStatus) {
+                const next = currentStatus === 'confirmed' ? 'pending' : 'confirmed';
+                const res = await window.updateBookingStatus(id, next);
+                if (res.success) {
+                    window.showToast(`Booking marked as ${next}.`, "success");
+                    loadBookings();
+                } else {
+                    window.showToast("Update failed: " + res.error, "error");
+                }
+            };
+
+            // Remove a customer booking (Supabase)
+            window.cancelCustomerBooking = async function(id) {
+                if (!confirm("Are you sure you want to remove this customer booking?")) return;
+                const res = await window.deleteBookingById(id);
+                if (res.success) {
+                    window.showToast("Customer booking removed.", "success");
+                    loadBookings();
+                } else {
+                    window.showToast("Removal failed: " + res.error, "error");
+                }
+            };
+
+            // ==========================================
+            // CUSTOMERS (registered users)
+            // ==========================================
+            async function loadCustomers() {
+                const body = document.getElementById('customers-table-body');
+                const badge = document.getElementById('customers-badge-count');
+                body.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;"><div style="border:3px solid var(--primary-light);border-top:3px solid var(--primary);border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:0 auto;"></div></td></tr>`;
+
+                let profiles = [];
+                try {
+                    profiles = await window.fetchAllProfiles();
+                } catch (e) {
+                    body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Could not load customers.</td></tr>`;
+                    badge.textContent = '0 Users';
+                    return;
+                }
+
+                badge.textContent = `${profiles.length} Users`;
+                body.innerHTML = '';
+
+                if (profiles.length === 0) {
+                    body.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">No registered users yet.</td></tr>`;
+                    return;
+                }
+
+                profiles.forEach(p => {
+                    const roleStyle = p.role === 'admin'
+                        ? 'background-color: var(--primary-light); color: var(--primary);'
+                        : 'background-color: #EEF1F6; color: var(--text-muted);';
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td style="font-weight: 500;">${p.full_name || '—'}</td>
+                            <td>${p.email || '—'}</td>
+                            <td style="text-align: right;">
+                                <span style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 50px; ${roleStyle}">${p.role}</span>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // ==========================================
+            // SETTINGS (admin updates own full name)
+            // ==========================================
+            async function loadSettings() {
+                const profile = await window.getCurrentProfile();
+                const session = await window.getSession();
+                const nameInput = document.getElementById('settings-fullname');
+                const emailInput = document.getElementById('settings-email');
+                if (profile && nameInput) nameInput.value = profile.full_name || '';
+                if (session && emailInput) emailInput.value = session.user.email;
+            }
+
+            const settingsForm = document.getElementById('settings-form');
+            if (settingsForm) {
+                settingsForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const btn = document.getElementById('btn-save-settings');
+                    const fullName = document.getElementById('settings-fullname').value.trim();
+                    if (!fullName) {
+                        window.showToast('Please enter your full name.', 'error');
+                        return;
+                    }
+                    btn.disabled = true;
+                    const res = await window.updateMyProfile(fullName);
+                    if (res.success) {
+                        window.showToast('Profile updated successfully!', 'success');
+                        sidebarName.textContent = fullName; // reflect change in the sidebar
+                    } else {
+                        window.showToast('Update failed: ' + res.error, 'error');
+                    }
+                    btn.disabled = false;
+                });
+            }
+
+            // Hook up logout
+            const sidebarLogoutBtn = document.getElementById('sidebar-logout-btn');
+            if (sidebarLogoutBtn) {
+                sidebarLogoutBtn.addEventListener('click', async () => {
+                    if (!window.supabaseClient) return;
+                    const { error } = await window.supabaseClient.auth.signOut();
+                    if (error) {
+                        window.showToast("Logout failed: " + error.message, "error");
+                    } else {
+                        window.showToast("Logged out successfully!", "success");
+                        setTimeout(() => window.location.href = 'index.html', 1000);
+                    }
+                });
+            }
+
+            // Mobile Sidebar Toggle
+            const sidebarToggle = document.getElementById('dashboard-sidebar-toggle');
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            
+            if (sidebarToggle && sidebar && sidebarOverlay) {
+                const toggleSidebar = () => {
+                    sidebar.classList.toggle('open');
+                    sidebarOverlay.classList.toggle('active');
+                };
+                sidebarToggle.addEventListener('click', toggleSidebar);
+                sidebarOverlay.addEventListener('click', toggleSidebar);
+                
+                // Close sidebar on link click on mobile
+                const sidebarLinks = sidebar.querySelectorAll('.sidebar-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        sidebar.classList.remove('open');
+                        sidebarOverlay.classList.remove('active');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

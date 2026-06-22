@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Details | GlobeTrek Adventures</title>
+
+    <meta name="description" content="Explore full details for this GlobeTrek travel package — photos, route, and recommended hotels.">
+    <meta property="og:title" content="Package Details | GlobeTrek Adventures">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js) -->
+    <script src="env.js"></script>
+</head>
+<body>
+
+    <!-- ==========================================
+       NAVIGATION HEADER
+       ========================================== -->
+    <nav class="navbar" id="main-navbar">
+        <div class="container">
+            <a href="index.html" class="logo-wrapper" id="nav-logo">
+                <img src="logo.png" alt="GlobeTrek Logo" style="height: 36px; width: auto; object-fit: contain;">
+                <span>GlobeTrek</span>
+            </a>
+
+            <ul class="nav-links" id="desktop-nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="packages.html" class="active">Packages</a></li>
+                <li><a href="packages.html?budget=1500">Deals</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </ul>
+
+            <div class="nav-auth" id="nav-auth-container">
+                <a href="login.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Login</a>
+                <a href="login.html?signup=true" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+
+            <button class="hamburger" id="hamburger-toggle" aria-label="Toggle Navigation Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile drawer -->
+    <div class="mobile-drawer-overlay" id="mobile-overlay"></div>
+    <aside class="mobile-drawer" id="mobile-drawer">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html"><i data-lucide="home" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Home</a></li>
+            <li><a href="packages.html"><i data-lucide="map" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Packages</a></li>
+            <li><a href="packages.html?budget=1500"><i data-lucide="tag" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Deals</a></li>
+            <li><a href="about.html"><i data-lucide="info" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> About Us</a></li>
+            <li><a href="index.html#contact"><i data-lucide="phone" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;"></i> Contact</a></li>
+        </ul>
+        <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0;">
+        <ul class="mobile-nav-links" id="mobile-nav-auth-container">
+            <li><a href="login.html"><i data-lucide="log-in"></i> Login</a></li>
+            <li><a href="login.html?signup=true"><i data-lucide="user-plus"></i> Sign Up</a></li>
+        </ul>
+    </aside>
+
+    <!-- ==========================================
+       PACKAGE DETAILS CONTENT
+       ========================================== -->
+    <main class="container pkg-detail">
+        <div id="pkg-detail-content">
+            <div style="text-align: center; padding: 5rem 0;">
+                <div style="border: 4px solid var(--primary-light); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1rem auto;"></div>
+                <p style="color: var(--text-muted);">Loading package details…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-bottom" style="border-top: none;">
+                <p>&copy; 2026 GlobeTrek Adventures. All Rights Reserved.</p>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+
+    <!-- Package details loader -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('pkg-detail-content');
+            const id = new URLSearchParams(window.location.search).get('id');
+
+            const message = (icon, title, sub) => `
+                <div style="text-align: center; padding: 5rem 0;">
+                    <i data-lucide="${icon}" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                    <h2 style="margin-bottom: 0.5rem;">${title}</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${sub}</p>
+                    <a href="packages.html" class="btn btn-primary">Browse all packages</a>
+                </div>`;
+
+            if (!id) {
+                container.innerHTML = message('alert-circle', 'No package selected', 'Please pick a package to view its details.');
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            let pkg;
+            try {
+                pkg = await window.fetchPackageById(id);
+            } catch (e) {
+                container.innerHTML = message('cloud-off', 'Could not load this package', 'Please try again in a moment.');
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            if (!pkg) {
+                container.innerHTML = message('map-pin-off', 'Package not found', 'This package may have been removed.');
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            renderPackage(pkg);
+
+            function lines(value) {
+                return String(value || '').split('\n').map(s => s.trim()).filter(Boolean);
+            }
+            function esc(s) {
+                return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            }
+
+            function renderPackage(pkg) {
+                document.title = `${pkg.destination} | GlobeTrek Adventures`;
+
+                const fallback = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80';
+                const mainImg = pkg.image_url || fallback;
+                const gallery = lines(pkg.gallery);
+                const route = lines(pkg.route);
+                const hotels = lines(pkg.hotels);
+                const price = Number(pkg.price || 0).toLocaleString();
+
+                let html = `
+                    <a href="packages.html" class="pkg-back">
+                        <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i> Back to packages
+                    </a>
+
+                    <div class="pkg-headline">
+                        <span class="pkg-tag">${pkg.duration || 'Flexible'}</span>
+                        <h1>${pkg.destination}</h1>
+                        <p class="pkg-loc"><i data-lucide="map-pin"></i> ${pkg.destination}</p>
+                    </div>
+
+                    <div class="pkg-top">
+                        <div class="pkg-media">
+                            <img src="${mainImg}" alt="${esc(pkg.destination)}" class="pkg-hero-img" id="pkg-main-img">
+                            ${gallery.length ? `<div class="pkg-gallery">${[mainImg, ...gallery].map((u, i) => `<img src="${u}" alt="${esc(pkg.destination)} photo ${i + 1}" onclick="document.getElementById('pkg-main-img').src='${esc(u)}'">`).join('')}</div>` : ''}
+                        </div>
+
+                        <aside class="pkg-booking-card">
+                            <div class="pkg-price-row">
+                                <span class="pkg-price-label">From</span>
+                                <span class="pkg-price-big">LKR ${price}</span>
+                                <span class="pkg-price-label">/ person</span>
+                            </div>
+                            <button class="btn btn-primary pkg-book-btn" onclick="window.bookTour(${pkg.id}, '${esc(pkg.destination)}', ${Number(pkg.price) || 0}, '${esc(mainImg)}')">
+                                <i data-lucide="navigation"></i> Book Now
+                            </button>
+                            <p class="pkg-trust"><i data-lucide="shield-check"></i> Secure booking — reserve now, pay at checkout</p>
+                            <ul class="pkg-quickfacts">
+                                <li><i data-lucide="clock"></i> Duration <strong>${pkg.duration || 'Flexible'}</strong></li>
+                                <li><i data-lucide="map-pin"></i> Destination <strong>${pkg.destination}</strong></li>
+                                <li><i data-lucide="plane"></i> Departs from <strong>Negombo, Sri Lanka</strong></li>
+                            </ul>
+                        </aside>
+                    </div>
+
+                    <div class="pkg-body">
+                        <div class="pkg-info-section">
+                            <h2><i data-lucide="info"></i> Overview</h2>
+                            <p class="pkg-overview">${pkg.description || 'A full overview of this experience is coming soon.'}</p>
+                        </div>
+                `;
+
+                if (route.length) {
+                    html += `
+                        <div class="pkg-info-section">
+                            <h2><i data-lucide="route"></i> Route &amp; Itinerary</h2>
+                            <ul class="pkg-list">${route.map((r, i) => `<li><i data-lucide="map-pin"></i><span><strong>Stop ${i + 1}:</strong> ${r}</span></li>`).join('')}</ul>
+                        </div>`;
+                }
+
+                if (hotels.length) {
+                    html += `
+                        <div class="pkg-info-section">
+                            <h2><i data-lucide="bed-double"></i> Hotels in the Area</h2>
+                            <ul class="pkg-list">${hotels.map(h => `<li><i data-lucide="building-2"></i><span>${h}</span></li>`).join('')}</ul>
+                        </div>`;
+                }
+
+                if (!route.length && !hotels.length) {
+                    html += `<p style="color: var(--text-muted); margin-top: 1.5rem;">More trip details (route and hotels) will be added soon by our team.</p>`;
+                }
+
+                html += `</div>`; // close .pkg-body
+
+                container.innerHTML = html;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | GlobeTrek Adventures</title>
+    
+    <!-- Open Graph (OG) Meta Tags -->
+    <meta property="og:title" content="Customer Dashboard | GlobeTrek Adventures">
+    <meta property="og:description" content="Manage your booked premium itineraries.">
+    <meta property="og:image" content="logo.png">
+    <meta property="og:type" content="website">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- GlobeTrek Supabase config (must load before app.js and page guards) -->
+    <script src="env.js"></script>
+    
+    <!-- ==========================================
+       SESSION GUARD (EXECUTES IMMEDIATELY TO PREVENT FLASH)
+       ========================================== -->
+    <script>
+        // Route guard: only signed-in users may view the dashboard.
+        (async function verifySession() {
+            const cfg = window.GLOBETREK_CONFIG || {};
+            if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+                window.location.replace('login.html');
+                return;
+            }
+            try {
+                // Create the shared client once; app.js will reuse it.
+                window.supabaseClient = window.supabaseClient ||
+                    window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (session) return;
+
+                // If the URL still carries an OAuth hash, wait briefly for Supabase to process it.
+                if (window.location.hash.includes('access_token=')) {
+                    let resolved = false;
+                    const { data: listener } = window.supabaseClient.auth.onAuthStateChange((event, newSession) => {
+                        if (newSession && !resolved) {
+                            resolved = true;
+                            listener.subscription.unsubscribe();
+                        }
+                    });
+                    await new Promise(r => setTimeout(r, 1500));
+                    listener.subscription.unsubscribe();
+                    const { data: { session: afterWait } } = await window.supabaseClient.auth.getSession();
+                    if (afterWait) return;
+                }
+
+                window.location.replace('login.html');
+            } catch (err) {
+                console.error('Session verification failed:', err);
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- Mobile Top Header -->
+    <header class="dashboard-mobile-header">
+        <button class="hamburger-btn" id="dashboard-sidebar-toggle" aria-label="Toggle Sidebar Menu">
+            <i data-lucide="menu"></i>
+        </button>
+        <a href="index.html" class="sidebar-logo" style="color: var(--dark);">
+            <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain;">
+            <span>GlobeTrek</span>
+        </a>
+        <div style="width: 32px;"></div> <!-- Spacer to center logo -->
+    </header>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="dashboard-layout">
+        <!-- ==========================================
+           LEFT PANEL: FIXED SIDEBAR
+           ========================================== -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-top">
+                <a href="index.html" class="sidebar-logo">
+                    <img src="logo.png" alt="GlobeTrek Logo" style="height: 32px; width: auto; object-fit: contain;">
+                    <span>GlobeTrek</span>
+                </a>
+                
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Overview</a></li>
+                    <li><a href="packages.html" class="sidebar-link"><i data-lucide="compass"></i> Browse Tours</a></li>
+                    <li id="admin-console-item" style="display: none;"><a href="admin.html" class="sidebar-link" style="background-color: rgba(255, 255, 255, 0.08); color: var(--white); border-left: 3px solid var(--primary);"><i data-lucide="shield-check"></i> Admin Console</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="window.showToast('Profile management is disabled in demo mode.', 'error');"><i data-lucide="user"></i> My Profile</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="window.showToast('Preferences updated.', 'success');"><i data-lucide="settings"></i> Settings</a></li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <!-- User details injected dynamically -->
+                <div class="user-profile-widget" id="user-profile-sidebar">
+                    <div class="user-avatar" id="profile-avatar">U</div>
+                    <div class="user-details-small">
+                        <span class="user-name-small" id="profile-name">User Name</span>
+                        <span class="user-email-small" id="profile-email">user@email.com</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-white" id="sidebar-logout-btn" style="width: 100%; gap: 0.5rem; justify-content: center; padding: 0.75rem 1rem;">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- ==========================================
+           RIGHT PANEL: MAIN CONTENT PORTAL
+           ========================================== -->
+        <main class="dashboard-main">
+            <!-- Sticky Dashboard Navigation Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1 id="greeting-title">Welcome back, Traveler!</h1>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;" id="greeting-date">Monday, June 15, 2026</p>
+                </div>
+                
+                <div class="dashboard-header-right">
+                    <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: var(--white); border-radius: 50%; border: 1px solid #E2E8F0; cursor: pointer;" onclick="window.showToast('You have no new alerts.', 'success')">
+                        <i data-lucide="bell" style="width: 20px; height: 20px; color: var(--text-muted);"></i>
+                        <span style="position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; background-color: var(--primary); border-radius: 50%;"></span>
+                    </div>
+                    <a href="index.html" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">View Website</a>
+                </div>
+            </header>
+            
+            <div class="dashboard-content">
+                <!-- Metric Summary Counter Grid -->
+                <section class="dashboard-counters">
+                    <div class="counter-card">
+                        <div class="counter-info">
+                            <h3>Total Bookings</h3>
+                            <div class="counter-number" id="stat-bookings-count">0</div>
+                        </div>
+                        <div class="counter-icon">
+                            <i data-lucide="luggage"></i>
+                        </div>
+                    </div>
+                    <div class="counter-card">
+                        <div class="counter-info">
+                            <h3>Amount Spent</h3>
+                            <div class="counter-number" id="stat-spent">LKR 0</div>
+                        </div>
+                        <div class="counter-icon" style="background-color: rgba(52, 199, 89, 0.1); color: #34C759;">
+                            <i data-lucide="credit-card"></i>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Main Content Grid -->
+                <div class="dashboard-panels-grid" style="grid-template-columns: 1fr;">
+                    <!-- Booked Trips Table -->
+                    <section class="panel-card">
+                        <div class="panel-header">
+                            <h2>Your Booked Journeys</h2>
+                            <span style="font-size: 0.8rem; background-color: var(--primary-light); color: var(--primary); padding: 0.3rem 0.6rem; border-radius: 50px; font-weight: 600;" id="trip-badge-count">0 Trips</span>
+                        </div>
+                        
+                        <div class="bookings-table-wrapper">
+                            <table class="bookings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Destination</th>
+                                        <th>Booked Date</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bookings-table-body">
+                                    <!-- Populated dynamically via JS -->
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                                            No travel itineraries booked yet.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Import global app script (handles shared client setups & toast alerts) -->
+    <script src="app.js"></script>
+
+    <!-- Dashboard Data Loader script (Supabase) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.getElementById('bookings-table-body');
+            const statBookings = document.getElementById('stat-bookings-count');
+            const statSpent = document.getElementById('stat-spent');
+            const tripBadgeCount = document.getElementById('trip-badge-count');
+            const sidebarName = document.getElementById('profile-name');
+            const sidebarEmail = document.getElementById('profile-email');
+            const sidebarAvatar = document.getElementById('profile-avatar');
+            const greetingTitle = document.getElementById('greeting-title');
+            const greetingDate = document.getElementById('greeting-date');
+
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            greetingDate.textContent = new Date().toLocaleDateString('en-US', dateOptions);
+
+            // Load profile + bookings from Supabase
+            (async () => {
+                const session = await window.getSession();
+                const profile = await window.getCurrentProfile();
+                if (session) renderProfile(session.user, profile);
+                await loadBookings();
+            })();
+
+            function renderProfile(user, profile) {
+                const email = user.email;
+                const fullName = (profile && profile.full_name) || user.user_metadata?.full_name || email.split('@')[0];
+                const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+                sidebarName.textContent = fullName;
+                sidebarEmail.textContent = email;
+                sidebarAvatar.textContent = initials;
+                greetingTitle.textContent = `Welcome back, ${fullName.split(' ')[0]}!`;
+
+                // Show the Admin Console link only for admin accounts
+                if (profile && profile.role === 'admin') {
+                    const adminItem = document.getElementById('admin-console-item');
+                    if (adminItem) adminItem.style.display = 'block';
+                }
+            }
+
+            async function loadBookings() {
+                let bookings = [];
+                try {
+                    bookings = await window.fetchMyBookings();
+                } catch (e) {
+                    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:3rem;">Could not load your bookings. Please try again.</td></tr>`;
+                    return;
+                }
+
+                const count = bookings.length;
+                const spent = bookings.reduce((sum, item) => sum + Number(item.price || 0), 0);
+
+                statBookings.textContent = count;
+                tripBadgeCount.textContent = `${count} Trips`;
+                statSpent.textContent = `LKR ${spent.toLocaleString()}`;
+
+                tableBody.innerHTML = '';
+
+                if (count === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 4rem 0;">
+                                <i data-lucide="compass" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.5rem; display: block; margin-left: auto; margin-right: auto;"></i>
+                                <p style="font-weight: 500; font-size: 0.95rem; margin-bottom: 0.5rem;">No bookings found</p>
+                                <a href="packages.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Browse Travel Deals</a>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    bookings.forEach(booking => {
+                        const statusClass = booking.status === 'confirmed' ? 'confirmed' : 'pending';
+                        const dateStr = booking.created_at
+                            ? new Date(booking.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '';
+                        const row = `
+                            <tr>
+                                <td>
+                                    <div class="booking-dest">
+                                        <img src="${booking.image || ''}" alt="${booking.title}" class="booking-dest-img">
+                                        <span>${booking.title}</span>
+                                    </div>
+                                </td>
+                                <td>${dateStr}</td>
+                                <td style="font-weight: 600;">LKR ${Number(booking.price).toLocaleString()}</td>
+                                <td>
+                                    <span class="status-badge ${statusClass}">
+                                        <i data-lucide="${booking.status === 'confirmed' ? 'check' : 'clock'}" style="width: 10px; height: 10px;"></i>
+                                        ${booking.status}
+                                    </span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="btn" onclick="cancelBooking(${booking.id})" style="padding: 0.4rem 0.8rem; background-color: rgba(200, 30, 30, 0.1); color: #C81E1E; font-size: 0.75rem; font-weight: 600;">Cancel</button>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.insertAdjacentHTML('beforeend', row);
+                    });
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // Cancel a booking (Supabase)
+            window.cancelBooking = async function(id) {
+                if (!confirm("Are you sure you want to cancel this booking?")) return;
+                const res = await window.cancelBookingById(id);
+                if (res.success) {
+                    window.showToast("Booking cancelled successfully.", "success");
+                    loadBookings();
+                } else {
+                    window.showToast("Cancel failed: " + res.error, "error");
+                }
+            };
+
+            // Logout
+            const sidebarLogoutBtn = document.getElementById('sidebar-logout-btn');
+            if (sidebarLogoutBtn) {
+                sidebarLogoutBtn.addEventListener('click', async () => {
+                    if (!window.supabaseClient) return;
+                    const { error } = await window.supabaseClient.auth.signOut();
+                    if (error) {
+                        window.showToast("Logout failed: " + error.message, "error");
+                    } else {
+                        window.showToast("Logged out successfully!", "success");
+                        setTimeout(() => window.location.href = 'index.html', 1000);
+                    }
+                });
+            }
+
+            // Mobile Sidebar Toggle
+            const sidebarToggle = document.getElementById('dashboard-sidebar-toggle');
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            
+            if (sidebarToggle && sidebar && sidebarOverlay) {
+                const toggleSidebar = () => {
+                    sidebar.classList.toggle('open');
+                    sidebarOverlay.classList.toggle('active');
+                };
+                sidebarToggle.addEventListener('click', toggleSidebar);
+                sidebarOverlay.addEventListener('click', toggleSidebar);
+                
+                // Close sidebar on link click on mobile
+                const sidebarLinks = sidebar.querySelectorAll('.sidebar-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        sidebar.classList.remove('open');
+                        sidebarOverlay.classList.remove('active');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

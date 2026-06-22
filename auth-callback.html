@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completing Sign In | GlobeTrek Adventures</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="env.js"></script>
+</head>
+<body>
+    <main class="auth-page" style="min-height: 100vh;">
+        <section class="auth-form-side" style="justify-content: center;">
+            <div class="auth-container" style="text-align: center;">
+                <div class="auth-logo" style="justify-content: center;">
+                    <img src="logo.png" alt="GlobeTrek Logo" style="height: 40px; width: auto; object-fit: contain;">
+                    <span>GlobeTrek</span>
+                </div>
+
+                <div id="callback-state">
+                    <div style="border: 3px solid rgba(0, 0, 255, 0.15); border-top: 3px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Completing sign in...</h2>
+                    <p style="color: var(--text-muted);">Please wait while we verify your account.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-visual-side" aria-hidden="true">
+            <div class="auth-visual-overlay"></div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        // Supabase OAuth callback handler.
+        // The URL arrives with #access_token=...&refresh_token=...; the Supabase
+        // client extracts and stores the session when getSession() is called.
+        document.addEventListener('DOMContentLoaded', async () => {
+            const stateBox = document.getElementById('callback-state');
+
+            const showError = (message) => {
+                stateBox.innerHTML = `
+                    <i data-lucide="alert-circle" style="width: 48px; height: 48px; color: #E54D2E; margin-bottom: 1rem;"></i>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Sign-in failed</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${message}</p>
+                    <a href="login.html" class="btn btn-primary">Return to Login</a>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+            };
+
+            try {
+                if (!window.supabaseClient) {
+                    throw new Error('Supabase client is not configured. Check env.js.');
+                }
+
+                // Wait for the session to be extracted from the URL hash.
+                const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+                if (sessionError) throw sessionError;
+
+                if (!session) {
+                    throw new Error('No session was returned from the provider. Please try again.');
+                }
+
+                // Make sure this user has a profile row (replaces the old DB trigger).
+                if (window.ensureProfile) await window.ensureProfile();
+
+                // Let the shared helper decide the destination based on role.
+                window.showToast('Signed in successfully!', 'success');
+                if (window.redirectAfterAuth) {
+                    await window.redirectAfterAuth('dashboard.html');
+                } else {
+                    const profile = await window.getCurrentProfile();
+                    const target = (profile && profile.role === 'admin') ? 'admin.html' : 'dashboard.html';
+                    window.location.replace(target);
+                }
+            } catch (err) {
+                console.error('OAuth callback error:', err);
+                showError(err.message || 'Something went wrong during sign in.');
+            }
+        });
+    </script>
+</body>
+</html>
